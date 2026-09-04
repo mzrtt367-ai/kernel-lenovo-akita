@@ -5,29 +5,31 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install Dependencies
+      - name: Install Correct GCC Toolchain
         run: |
           sudo apt update
-          sudo apt install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev zip ccache gcc-aarch64-linux-gnu clang
+          sudo apt install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev zip ccache gcc-aarch64-linux-gnu gcc-8-aarch64-linux-gnu
 
       - name: Build Kernel
         run: |
           export ARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
           
-          # إعداد ملف akita_row_call المباشر
-          make akita_row_call_debug_defconfig || make akita_row_call_defconfig || make mt6761_defconfig
+          # إيجاد ملف defconfig الصحيح تلقائياً من المجلد
+          DEFCONFIG_FILE=$(basename $(find arch/arm64/configs/ -name "*akita*" -o -name "*tb8505*" -o -name "*mt6761*" | head -n 1))
+          echo "Found Config: $DEFCONFIG_FILE"
           
-          make -j$(nproc)
+          make $DEFCONFIG_FILE
+          make -j$(nproc) || make -j2
 
       - name: Upload Kernel Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Image.gz-dtb
-          path: arch/arm64/boot/Image*
+          path: arch/arm64/boot/
