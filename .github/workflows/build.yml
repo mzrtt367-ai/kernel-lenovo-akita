@@ -14,22 +14,20 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt update
-          sudo apt install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev zip ccache gcc-aarch64-linux-gnu android-sdk-libsparse-utils
+          sudo apt install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev zip ccache gcc-aarch64-linux-gnu clang
 
       - name: Build Kernel
         run: |
           export ARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
           
-          # البحث عن ملف الـ defconfig المناسب تلقائياً
-          CONF=$(find arch/arm64/configs/ -name "*akita*" -o -name "*8505*" -o -name "*mt6761*" | head -n 1 | xargs basename)
-          echo "Using defconfig: $CONF"
+          # إعداد ملف akita_row_call المباشر
+          make akita_row_call_debug_defconfig || make akita_row_call_defconfig || make mt6761_defconfig
           
-          make $CONF
           make -j$(nproc)
 
       - name: Upload Kernel Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Image.gz-dtb
-          path: arch/arm64/boot/Image.gz*
+          path: arch/arm64/boot/Image*
